@@ -8,8 +8,12 @@ class CompositionalRule(object):
     def __or__(self, other):
         return Or(self, other)
 
+    def __ne__(self, other):
+        return Not(self.__eq__(other))
+
     def accepts(self, anObject):
         raise NotImplementedError
+
 
 class CollectionAttributeIncludesFilter(CompositionalRule):
     def __init__(self, attribute, quantifier, filter):
