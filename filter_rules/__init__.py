@@ -61,23 +61,63 @@ class AttributeLambdaFilter(CompositionalRule):
         return self.l(getattr(anObject, self.attribute))
 
 
-class ConditionOnCollectionAttribute(CompositionalRule):
+class BinOpAttrLength(CompositionalRule):
+    def __init__(self, attr, other, op):
+        super(BinOpAttrLength, self).__init__()
+        self.op = op
+        self.attr = attr
+        self.other = other
+
+    def accepts(self, anObject):
+        return self.op(len(getattr(anObject, self.attr)), self.other)
+
+
+class LengthConditionOnAttribute(object):
+    def __init__(self, attr):
+        super(LengthConditionOnAttribute, self).__init__()
+        self.attr = attr
+
+    def __gt__(self, other):
+        return BinOpAttrLength(self.attr, other, lambda a, b: a > b)
+
+    def __ge__(self, other):
+        return BinOpAttrLength(self.attr, other, lambda a, b: a >= b)
+
+    def __eq__(self, other):
+        return BinOpAttrLength(self.attr, other, lambda a, b: a == b)
+
+    def __ne__(self, other):
+        return BinOpAttrLength(self.attr, other, lambda a, b: a != b)
+
+    def __le__(self, other):
+        return BinOpAttrLength(self.attr, other, lambda a, b: a <= b)
+
+    def __lt__(self, other):
+        return BinOpAttrLength(self.attr, other, lambda a, b: a < b)
+
+
+class BaseCondition(object):
     def __init__(self, collection_attribute):
         self.collection_attribute = collection_attribute
 
+    def __eq__(self, other):
+        return AttributeLambdaFilter(self.collection_attribute, lambda x: x == other)
+
+
+class ConditionOnAttribute(BaseCondition):
+    def includes(self, param):
+        return AttributeLambdaFilter(self.collection_attribute, lambda x: param in x)
+
+    def in_(self, a_list):
+        return AttributeLambdaFilter(self.collection_attribute, lambda x: x in a_list)
+
+
+class ConditionOnCollectionAttribute(BaseCondition):
     def includes(self, quantifier, criteria):
         return CollectionAttributeIncludesFilter(self.collection_attribute, quantifier, criteria)
 
-
-class ConditionOnAttribute(object):
-    def __init__(self, attr_name):
-        self.attr_name = attr_name
-
-    def __eq__(self, other):
-        return AttributeLambdaFilter(self.attr_name, lambda x: x == other)
-
-    def includes(self, param):
-        return AttributeLambdaFilter(self.attr_name, lambda x: param in x)
+    def length(self):
+        return LengthConditionOnAttribute(self.collection_attribute)
 
 
 class ForAll(CompositionalRule):
